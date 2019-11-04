@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -87,6 +88,77 @@ namespace Gamming
             {
                 MessageBox.Show(e.Message + " " + (e.InnerException?.InnerException?.Message ?? "no inner exc") + (e.StackTrace ?? " no stack trace"));
                 return "";
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            button1.Enabled = false;
+            Count();
+        }
+
+        private class tuple
+        {
+            public byte Key { get; set; }
+            public int Value { get; set; }
+
+            public tuple(byte key)
+            {
+                this.Key = key;
+                this.Value = 1;
+            }
+
+            public static bool Contains(List<tuple>tuple, byte Key)
+            {
+                foreach(tuple t in tuple)
+                {
+                    if(t.Key == Key)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            public static void GetAverage(List<tuple> tuple)
+            {
+                (int, int) result = (0, 0);
+                for (int count = 0; count < tuple.Count; count++)
+                {
+                    result.Item1 += tuple[count].Key / (count + 1);
+                    result.Item2 += tuple[count].Value / (count + 1);
+                }
+                //return result;
+                MessageBox.Show(result.Item1 + " " + result.Item2);
+            }
+        }
+
+        private void Count()
+        {
+            LCG lcg = new LCG(1);
+            List<tuple> nums = new List<tuple>();
+            for(int i = 0; i < 1E6; i++)
+            {
+                byte rand = lcg.NextByte(255).FirstOrDefault();
+                if (tuple.Contains(nums, rand))
+                {
+                    var xx = nums.Where(x => x.Key == rand).FirstOrDefault();
+                    xx.Value += 1;
+                }
+                else
+                {
+                    nums.Add(new tuple(rand));
+                }
+            }
+            var thread = new Thread(() => tuple.GetAverage(nums));
+            thread.Start();
+            using(StreamWriter writer = new StreamWriter("out.txt"))
+            {
+                foreach(tuple i in nums)
+                {
+                    writer.WriteLine($"key: {i.Key} \tvalue: {i.Value}");
+                }
+                writer.Close();
             }
         }
     }
