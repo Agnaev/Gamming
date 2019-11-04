@@ -31,57 +31,24 @@ namespace Gamming
                                                 'э', 'ю', 'я',' ', '1', '2', '3', '4', '5', '6', '7',
                                                 '8', '9', '0' , '?', '.', ',', '!', '@', '#', '$', '%', 
                                                 '^', '&', '*', '(', ')', '+', '=', '<', '>', '`', '!', 
-                                                '\'', '"', '/', '\\', '[', ']', '{', '}', '~', '\r', '\n'};
+                                                '\'', '"', '/', '\\', '[', ']', '{', '}', '~', '-', '\r', '\n'};
 
         private void Encode_TextChanged(object sender, EventArgs e)
         {
             try
             {
-                encoded.Text = DecodeText(decoded.Text, Generate_Pseudorandom_KeyWord(decoded.Text.Length, 10));
-                //decoded.Text = string.Empty;
+                encoded.Text = XorCodingText(decoded.Text, Generate_Pseudorandom_KeyWord(decoded.Text.Length, 10));
             }
             catch (Exception exc)
             {
                 MessageBox.Show(exc.Message + " " + (exc.InnerException?.InnerException?.Message ?? "no inner exc") + (exc.StackTrace ?? " no stack trace"));
             }
         }
-
-        private string EncodeText(string input, string keyword)
-        {
-            try
-            {
-                string result = "";
-
-                int keyword_index = 0;
-
-                foreach (char symbol in input)
-                {
-                    int c = (Array.IndexOf(characters, symbol) +
-                        Array.IndexOf(characters, keyword[keyword_index])) % characters.Length;
-
-                    result += characters[c];
-
-                    keyword_index++;
-
-                    if ((keyword_index + 1) == keyword.Length)
-                        keyword_index = 0;
-                }
-
-                return result;
-            }
-            catch(Exception e)
-            {
-                MessageBox.Show(e.Message + " " + (e.InnerException?.InnerException?.Message ?? "no inner exc") + (e.StackTrace ?? " no stack trace"));
-                return " ";
-            }
-        }
-
         private string Generate_Pseudorandom_KeyWord(int length, int startSeed)
         {
             try
             {
                 LCG rand = new LCG(startSeed);
-
                 string result = "";
 
                 for (int i = 0; i < length; i++)
@@ -99,40 +66,19 @@ namespace Gamming
             }
         }
 
-        private string DecodeText(string input, string keyword)
+        private string XorCodingText(string input, string keyword)
         {
+            int GetPosition(char elem) => Array.IndexOf(characters, elem); //get position of element from global array characters
+
             try
             {
                 string result = "";
-
                 int keyword_index = 0;
 
                 foreach (char symbol in input)
                 {
-                    int posSourceText = GetPosition(characters, symbol);
-                    int posKey = GetPosition(keyword, keyword[keyword_index]);
-                    int p = (posSourceText ^ posKey) % characters.Length;
-
-                    if(posSourceText == -1)
-                    {
-                        throw new Exception($"symbol {symbol} not find in characters array");
-                    }
-                    else if(posKey == -1)
-                    {
-                        throw new Exception($"symbol {keyword[keyword_index]} not find in keyword: {keyword}");
-                    }
-                    //else if(p < 0 || p > characters.Length)
-                    //{
-                    //    p %= characters.Length;
-                    //    //throw new Exception($"xor {posSourceText} ^ {posKey} equls {p}");
-                    //}
-
-                    result += characters[p];
-
-                    keyword_index++;
-
-                    if ((keyword_index + 1) == keyword.Length)
-                        keyword_index = 0;
+                    result += characters[(GetPosition(symbol) ^ GetPosition(keyword[keyword_index])) % characters.Length];
+                    keyword_index = keyword_index == keyword.Length ? 0 : keyword_index++;
                 }
 
                 return result;
@@ -143,13 +89,5 @@ namespace Gamming
                 return "";
             }
         }
-
-        public int GetPosition<T>(T[] arr, T elem) => Array.IndexOf(arr, elem);
-        public int GetPosition(string arr, char elem)
-        {
-            char[] chararray = arr.ToArray();
-            var result = GetPosition<char>(chararray, elem);
-            return result;
-         }
     }
 }
