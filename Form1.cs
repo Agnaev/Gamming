@@ -49,12 +49,12 @@ namespace Gamming
         {
             try
             {
-                LCG rand = new LCG(startSeed);
+                SubtractiveGenerator rand = new SubtractiveGenerator(startSeed);
                 string result = "";
 
                 for (int i = 0; i < length; i++)
                 {
-                    int position = rand.NextByte(characters.Length).FirstOrDefault() % characters.Length;
+                    int position = rand.Next(/*characters.Length*/) % characters.Length;
                     result += characters[position];
                 }
 
@@ -135,14 +135,14 @@ namespace Gamming
 
         private void Count()
         {
-            LCG lcg = new LCG(1);
+            SubtractiveGenerator g = new SubtractiveGenerator(1);
             List<tuple> nums = new List<tuple>();
             for(int i = 0; i < 1E6; i++)
             {
-                byte rand = lcg.NextByte(255).FirstOrDefault();
+                byte rand = (byte)Math.Abs(g.Next() % 256);
                 if (tuple.Contains(nums, rand))
                 {
-                    var xx = nums.Where(x => x.Key == rand).FirstOrDefault();
+                    var xx = nums.Where(x => x.Key == rand)?.FirstOrDefault();
                     xx.Value += 1;
                 }
                 else
@@ -150,16 +150,49 @@ namespace Gamming
                     nums.Add(new tuple(rand));
                 }
             }
-            var thread = new Thread(() => tuple.GetAverage(nums));
-            thread.Start();
+            nums = nums.OrderBy(x => x.Key).ThenBy(x => x.Value).ToList();
+
+            bool flag = true;
+            for(int i = 0; i < 256; i++)
+            {
+                var tmp = nums.Where(x => x.Key == i).FirstOrDefault();
+                if (tmp == null)
+                {
+                    flag = false;
+                    MessageBox.Show(i + " ");
+                }
+            }
+
+            if (flag)
+            {
+                MessageBox.Show("Отсутсвующих элементов не найдено");
+            }
+
             using(StreamWriter writer = new StreamWriter("out.txt"))
             {
-                foreach(tuple i in nums)
+                (tuple, double, double) max = (nums[0], 0, 0), min = (nums[0], 0, 0);
+                foreach(tuple num in nums)
                 {
-                    writer.WriteLine($"key: {i.Key} \tvalue: {i.Value}");
+                    var p = 0.0256 * num.Value;
+
+                    var probably = p > 100 ? p - 100 : -(100 - p);
+
+                    if(num.Value > max.Item1.Value)
+                    {
+                        max = (num, p, probably);
+                    }
+                    else if(num.Value < max.Item1.Value)
+                    {
+                        min = (num, p, probably);
+                    }
+
+                    writer.WriteLine($"key: {num.Key} \tvalue: {num.Value} \t probably: {p} \tresult {probably}");
                 }
-                writer.Close();
+
+                writer.WriteLine($"Max\nkey: {max.Item1.Key}\tvalue: {max.Item1.Value}\t probably: {max.Item2}\tresult: {max.Item3}");
+                writer.WriteLine($"Min\nkey: {min.Item1.Key}\tvalue: {min.Item1.Value}\t porbably: {min.Item2}\tresult: {min.Item3}");
             }
+            System.Diagnostics.Process.Start("notepad.exe", "out.txt");
         }
     }
 }
